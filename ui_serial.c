@@ -71,7 +71,7 @@ int ui_gint(char * name, int min, int max) { //request an integer between min an
 }
 
 /* ui_do
-* Main UI loop, accepts l and p to print load or switch to passthrough.
+* Main UI loop, accepts single character commands.
 * Written by: David Wotherspoon
 */
 void ui_do(volatile uint8_t * pass, volatile uint32_t * ctime) {
@@ -92,7 +92,7 @@ void ui_do(volatile uint8_t * pass, volatile uint32_t * ctime) {
 			*pass = !(*pass);
 			break;
 		case 'r': //reset
-			NVIC_SystemReset();
+			NVIC_SystemReset(); //reset the board
 			break;
 		default:
 			break;

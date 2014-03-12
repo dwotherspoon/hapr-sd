@@ -11,5 +11,5 @@ int16_t chain_apply(volatile int16_t * buf, volatile uint16_t ptr);
 void make_queue(Filter * in);
 void chain_debug(void);
 void dequeuep(uint16_t pos);
-uint16_t find_filter(void * apply);
+int16_t find_filter(void * apply);
 void replace(uint16_t pos, uint16_t id);

@@ -109,6 +109,7 @@ void tty_printf(char *fmt, ...) {
 
 /* tty_scanf
 * Read string from console and parse with scanf.
+* Returns: scanf result.
 */
 int tty_scanf(char *fmt, ...) {
 	int ret;
@@ -140,6 +141,7 @@ void tty_putchar(char c) {
 
 /* tty_getchar
 * Read a single character from the console.
+* Returns: Single character read.
 */
 uint8_t tty_getchar(void) {
 	uint8_t tmp;
@@ -149,6 +151,7 @@ uint8_t tty_getchar(void) {
 
 /* tty_gets
 * Get a string from the console. (only backspace support)
+* Returns: Pointer to received string.
 */
 char * tty_gets(void) {
 	int pos = 0;

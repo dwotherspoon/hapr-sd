@@ -22,7 +22,7 @@ DSTATUS disk_initialize (
 	BYTE pdrv				/* Physical drive nmuber (0..) */
 )
 {
-	tty_printf("Disk init called %d\n\r", pdrv);
+	//tty_printf("Disk init called %d\n\r", pdrv);
 	DSTATUS stat;
 
 	switch (pdrv) {

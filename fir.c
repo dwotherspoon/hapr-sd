@@ -7,7 +7,7 @@
 
 /* do_fir *
 * Carry out FIR calculation.
-* Returns result of FIR.
+* Returns: FIR calculation result.
 * Written by: David Wotherspoon, Mike Jenic
 */
 int16_t do_fir(float * coeffs, uint16_t length, volatile int16_t * buffer, volatile uint16_t ptr) {

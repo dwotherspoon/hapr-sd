@@ -18,6 +18,7 @@
 #include "global.h"
 //sd
 #include "sd.h"
+#define SD_EN
 
 #define TIM_DEV LPC_TIM0
 #define START()	TIM_Cmd(TIM_DEV, 1)
@@ -41,20 +42,21 @@ void TIMER0_IRQHandler(void) {
 	avals[2] = ADC_ChannelGetData(LPC_ADC, 5);
 
 	//find the median of the 3 avals
+	#ifndef SD_EN
+	   if(avals[0] > avals[1]) {
+	        if(avals[1] > avals[2]) { buffer[bptr] = avals[1]-2048; }
+	        else if(avals[0] > avals[2]) { buffer[bptr] = avals[2]-2048; }
+	        else { buffer[bptr] = avals[0]-2048; }
+	    } else {
+	        if(avals[1] < avals[2]) { buffer[bptr] = avals[1]-2048; }
+	        else if(avals[0] < avals[2]) { buffer[bptr] = avals[2]-2048; }
+	        else { buffer[bptr] = avals[0]-2048; }
+	    }
+		if (buffer[bptr] > 1900) { //try and remove saturation spikes/use previous
+			buffer[bptr] = buffer[(bptr == 0) ? BUF_LEN : (bptr-1)];	
+		}
+	#endif
 
-   if(avals[0] > avals[1]) {
-        if(avals[1] > avals[2]) { buffer[bptr] = avals[1]-2048; }
-        else if(avals[0] > avals[2]) { buffer[bptr] = avals[2]-2048; }
-        else { buffer[bptr] = avals[0]-2048; }
-    } else {
-        if(avals[1] < avals[2]) { buffer[bptr] = avals[1]-2048; }
-        else if(avals[0] < avals[2]) { buffer[bptr] = avals[2]-2048; }
-        else { buffer[bptr] = avals[0]-2048; }
-    }
-	if (buffer[bptr] > 1900) { //try and remove saturation spikes/use previous
-		buffer[bptr] = buffer[(bptr == 0) ? BUF_LEN : (bptr-1)];	
-	}
-	
 	DAC_UpdateValue(LPC_DAC, ((pass ? buffer[bptr] : chain_apply(buffer, bptr))+2048)>>2); //move back up and shift
 	bptr = (bptr == (BUF_LEN - 1)) ? 0 : bptr + 1; //increment the pointer.
 	TIM_ClearIntPending(TIM_DEV, TIM_MR0_INT); //clear IRQ
@@ -132,31 +134,38 @@ void setup(void) { //preform setup routines for onboard devices
 	NVIC_EnableIRQ(TIMER0_IRQn);
 }
 
-/* main
-* Calls setup, user interface and starts sample timer.
-* Written by: David Wotherspoon, Alex Petherick, Mike Jenic
-*/
-int main(void) {
-	setup(); //configure onboard devices.
-	ui_flist(); //prints filter list
-	ui_buildchain(); //begin chain configuration
-	WDT_Start(0); //will mean feed is 0xFF + 0
-	START(); //start the sample timer.
-	chain_debug(); //print chain config
-	while (1) {
-		ui_do(&pass, &chain_time);
-	}
-}
 
-int mainp(void) {
-	setup();
-	sd_start();
-	wav_read("demo.wav");
-	ui_flist();
-	ui_buildchain();
-	START(); //start sample timer.
-	chain_debug();
-	while (1) {
-		sd_do(buffer, bptr);
+#ifndef SD_EN
+	/* main (for ADC playout.)
+	* Calls setup, user interface and starts sample timer.
+	* Written by: David Wotherspoon, Alex Petherick, Mike Jenic
+	*/
+	int main(void) {
+		setup(); //configure onboard devices.
+		ui_flist(); //prints filter list
+		ui_buildchain(); //begin chain configuration
+		WDT_Start(0); //will mean feed is 0xFF + 0
+		START(); //start the sample timer.
+		chain_debug(); //print chain config
+		while (1) {
+			ui_do(&pass, &chain_time);
+		}
 	}
-}
+#else
+	/* main (for SD card playout.)
+	* Calls setup, reads SD card and starts sample timer.
+	* Written by: David Wotherspoon
+	*/
+	int main(void) {
+		setup();
+		sd_start();
+		wav_read("demo.wav", buffer);
+		ui_flist();
+		ui_buildchain();
+		START(); //start sample timer.
+		chain_debug();
+		while (1) {
+			sd_do(buffer, bptr);
+		}
+	}
+#endif

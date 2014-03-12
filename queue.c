@@ -12,7 +12,7 @@ Filter * tail = NULL; //chain tail
 
 /* enqueue
 * Either set head and create filter from id or add to tail.
-* Written by: David Wotherspoon, 
+* Written by: David Wotherspoon
 */
 void enqueue(uint16_t id) {
 	ASSERT(id < FTABLE_LEN, "Filter id out of range.");
@@ -40,7 +40,8 @@ void dequeue(void) {
 }
 
 /* chain_apply
-* Interate over filter queue and produce final value.
+* Iterate over filter queue and produce final value.
+* Returns: Output value from chain.
 * Written by: Mike Jenic
 */
 int16_t chain_apply(volatile int16_t * buf, volatile uint16_t ptr) {
@@ -117,9 +118,10 @@ void replace(uint16_t pos, uint16_t id) {
 
 /* find_filter
 * Find the id of a filter from the apply pointer.
+* Returns: ID of filter or -1.
 * Written by: David Wotherspoon
 */
-uint16_t find_filter(void * apply) {
+int16_t find_filter(void * apply) {
 	uint16_t i = 0;
 	for (; i < (FTABLE_LEN); i++ ) {
 		if (ftable_applys[i] == apply) {
@@ -127,7 +129,7 @@ uint16_t find_filter(void * apply) {
 		}
 	}
 	THROW("Unable to find filter from apply function.");
-	return 0;
+	return -1;
 }
 
 /* chain_debug

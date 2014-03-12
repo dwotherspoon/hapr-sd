@@ -134,7 +134,7 @@ uint8_t sd_init(void) { //http://elm-chan.org/docs/mmc/mmc_e.html
 	int r1;
 	uint8_t buf[6] = {0};
 	ssp_init();
-	tty_printf("SPI bus initialised.\n\r");
+	//tty_printf("SPI bus initialised.\n\r");
 	
 	for (i = 0; i < 10; i++) { //send 74 clocks (80)
 		spi_readwrite(0xFF);
@@ -159,7 +159,7 @@ uint8_t sd_init(void) { //http://elm-chan.org/docs/mmc/mmc_e.html
 		
 		sd_cs(1);//disable now we've read the response
 		ASSERT((buf[0] == 0x00 || buf[1] == 0x00 || buf[2] == 0x01 || buf[3] == 0xAA), "SD card not compatible.");
-		tty_printf("Card responded to CMD8, assuming SDv2.\n\r");
+		//tty_printf("Card responded to CMD8, assuming SDv2.\n\r");
 		//Now try and init.
 		for (i = 0; i < SD_RETRY; i++) { //try until retry limit
 			r1 = sd_cmd(CMD55, 0x00, 0x01);
@@ -174,7 +174,7 @@ uint8_t sd_init(void) { //http://elm-chan.org/docs/mmc/mmc_e.html
 			}
 		}
 		ASSERT(r1 == 0x00, "ACMD41 init failed!");
-		tty_printf("Card initialised (%d retries)\n\r", i);
+		//tty_printf("Card initialised (%d retries)\n\r", i);
 		/* Read OCR */
 		r1 = sd_cmdh(CMD58, 0x00, 0x01);
 		ASSERT(r1 == 0x00, "Invalid response to 0x00.");
@@ -187,22 +187,21 @@ uint8_t sd_init(void) { //http://elm-chan.org/docs/mmc/mmc_e.html
 		//tty_printf("CMD58 returned; %x, %x, %x, %x\n\r", buf[0], buf[1], buf[2], buf[3]);
 		if (buf[0] & 0x40) {
 			sd_type = CARDTYPE_SDV2HC;
-			tty_puts("Card is SD v2 HC\r\n");
+			//tty_puts("Card is SD v2 HC\r\n");
 			return 0x00;
 		}
 		else {
 			sd_type = CARDTYPE_SDV2;
-			tty_puts("Card is SD v2\r\n");
+			//tty_puts("Card is SD v2\r\n");
 		}
 	}
 	else if (r1 == 0x05) { //illegal
 		sd_cs(1); //disable card (no response to read)
 		tty_printf("Card did not respond to CMD8, assuming SDv1.\n\r");
 		sd_type = CARDTYPE_SDV1;
-		//TODO: Make this do stuff.
 		THROW("SD v1.");
 	}
-	else { //something dun goofed
+	else { //something went wrong
 		THROW("Invalid response to CMD8.");	
 	}
 	return 0x02; //no medium error

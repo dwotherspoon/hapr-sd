@@ -17,7 +17,7 @@ UINT read; //ChanFS UINT type
 uint16_t lastb = 0; //last block filled in buffer.
 
 /* sd_start
-* Mount file system with chanFS
+* Mount file system with ChanFS.
 */
 void sd_start(void) {
 	f_mount(&fs, "0:", 1);
@@ -28,8 +28,9 @@ void sd_start(void) {
 * Assumes buffer has length multiple of 512.
 */
 inline void sd_do(volatile int16_t * buf, volatile uint16_t ptr) { //sd buffer loop code
-	static uint16_t bp; //previous block pointer
-	if ((ptr > lastb)) { //fill next block when previous block is being played.
+	static uint16_t bp; //pointer for byte copy
+	if ((ptr > lastb) && !((lastb == 0) && (ptr > 512))) { //fill next block when previous block is being played.
+		//tty_printf("%d\n\r",lastb);
 		f_read(&fsrc, sd_buf, 512, &read);
 		lastb = ((lastb+512) == BUF_LEN) ? 0 : (lastb + 512);
 		for (bp = 0; bp < 512; bp++) { //copy from sd_buf to main delay line
@@ -40,8 +41,9 @@ inline void sd_do(volatile int16_t * buf, volatile uint16_t ptr) { //sd buffer l
 
 /* wav_read
 * Reads through header on wav file. Returns sample rate or throws an error if file is not valid.
+* Also reads first 512 bytes into buffer.
 */
-int wav_read(char * fpath) { //https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
+int wav_read(char * fpath, volatile int16_t * buf) { //https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
 	uint16_t i;
 	uint32_t chunksize;
 	uint32_t subchunk1size;
@@ -61,7 +63,7 @@ int wav_read(char * fpath) { //https://ccrma.stanford.edu/courses/422/projects/W
 
 		f_read(&fsrc, tbuf, 4, &read); //Chunk size
 		chunksize = tbuf[3]<<24 | tbuf[2]<<16 | tbuf[1]<<8 | tbuf[0];
-		tty_printf("Chunk size %lu\n\r", chunksize);
+		//tty_printf("Chunk size %lu\n\r", chunksize);
 		
 		f_read(&fsrc, tbuf, 4, &read); //Format
 		ASSERT((tbuf[0] == 'W') && (tbuf[1] == 'A') && (tbuf[2] == 'V') && (tbuf[3] == 'E'), "Not a  WAVE file."); 
@@ -71,32 +73,32 @@ int wav_read(char * fpath) { //https://ccrma.stanford.edu/courses/422/projects/W
 
 		f_read(&fsrc, tbuf, 4, &read); //SubChunk1Size
 		subchunk1size = tbuf[3]<<24 | tbuf[2]<<16 | tbuf[1]<<8 | tbuf[0];
-		tty_printf("Sub chunk 1(fmt) size: %lu\n\r", subchunk1size); 
+		//tty_printf("Sub chunk 1(fmt) size: %lu\n\r", subchunk1size); 
 
 		f_read(&fsrc, tbuf, 2, &read); //Audio format
 		audioformat = tbuf[1]<<8 | tbuf[0];
-		tty_printf("Audio format: %d\n\r", audioformat);
+		//tty_printf("Audio format: %d\n\r", audioformat);
 		ASSERT(audioformat == 1, "Audio is not PCM encoded.");
 
 		f_read(&fsrc, tbuf, 2, &read); //NumChannels
 		numchannels = tbuf[1]<<8 | tbuf[0];
-		tty_printf("Number of channels: %d\n\r", numchannels);
+		//tty_printf("Number of channels: %d\n\r", numchannels);
 		ASSERT(numchannels == 1, "Audio has more than one channel.");
 
 		f_read(&fsrc, tbuf, 4, &read); //SampleRate
 		samplerate = tbuf[3]<<24 | tbuf[2]<<16 | tbuf[1]<<8 | tbuf[0];
-		tty_printf("Sample rate is: %lu\n\r", samplerate); 
+		//tty_printf("Sample rate is: %lu\n\r", samplerate); 
 
 		f_read(&fsrc, tbuf, 4, &read); //ByteRate
 		byterate = tbuf[3]<<24 | tbuf[2]<<16 | tbuf[1]<<8 | tbuf[0];
-		tty_printf("Byte rate is: %lu\n\r", byterate); 
+		//tty_printf("Byte rate is: %lu\n\r", byterate); 
 		
 		f_read(&fsrc, tbuf, 2, &read); //Block align
 		blockalign = tbuf[1]<<8 | tbuf[0];
 		
 		f_read(&fsrc, tbuf, 2, &read); //Sample width
 		samplewidth = tbuf[1]<<8 | tbuf[0];
-		tty_printf("Sample width: %d\n\r", samplewidth);
+		//tty_printf("Sample width: %d\n\r", samplewidth);
 		ASSERT(samplewidth == 8, "Sample width must be 8 bit.")
 		
 		for (i = 16; i < subchunk1size; i++) { 
@@ -108,8 +110,13 @@ int wav_read(char * fpath) { //https://ccrma.stanford.edu/courses/422/projects/W
 		
 		f_read(&fsrc, tbuf, 4, &read); //Subchunk 2 size
 		subchunk2size = tbuf[3]<<24 | tbuf[2]<<16 | tbuf[1]<<8 | tbuf[0];
-		tty_printf("Sub chunk 2 size: %lu\n\r", subchunk2size); 
+		//tty_printf("Sub chunk 2 size: %lu\n\r", subchunk2size); 
 		//TODO: Compute sample number.
+		f_read(&fsrc, sd_buf, 512, &read); //read 512 bytes
+		for (i = 0; i < 512; i++) { //copy from sd_buf to main delay line
+			buf[i] = (sd_buf[i]<<4)-2048;
+		}
+		lastb = 0; //set last block pointer
 	}
 	else {
 		char error[64];
