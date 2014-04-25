@@ -6,6 +6,8 @@
 /* This is an example of glue functions to attach various exsisting      */
 /* storage control module to the FatFs module with a defined API.        */
 /*-----------------------------------------------------------------------*/
+/* Modified by: David Wotherspoon					 */
+/*-----------------------------------------------------------------------*/
 #include "diskio.h"		/* FatFs lower layer API */
 #include "sd_mbed.h"
 
